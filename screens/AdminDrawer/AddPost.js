@@ -6,13 +6,15 @@ import {
   Button,
   Image,
   TouchableOpacity,
+  Platform,
 } from "react-native";
-import * as ImagePicker from "expo-image-picker";
+import * as Device from "expo-device";
+import * as Notifications from "expo-notifications";
 import AntDesign from "@expo/vector-icons/AntDesign";
 import { SelectList } from "react-native-dropdown-select-list";
-import React, { useState } from "react";
-import { Picker } from "@react-native-picker/picker";
-import { db, firebase } from "../firebaseConfig";
+import React, { useState, useRef, useEffect } from "react";
+import * as ImagePicker from "expo-image-picker";
+
 import { getStorage, ref, getDownloadURL, uploadBytes } from "firebase/storage";
 import {
   addDoc,
@@ -22,19 +24,96 @@ import {
   serverTimestamp,
   where,
 } from "firebase/firestore";
-import places from "./data/places";
-import crimeCategories from "./data/categories";
-
+import { db } from "../../firebaseConfig";
 const storage = getStorage();
 
-const Reporting = () => {
-  const [selectedcat, setSelectedCat] = useState("");
+Notifications.setNotificationHandler({
+  handleNotification: async () => ({
+    shouldShowAlert: true,
+    shouldPlaySound: true,
+    shouldSetBadge: true,
+  }),
+});
+
+const AddPol = () => {
   const [image, setImage] = useState(null);
   const [description, setDescription] = useState("");
-  const [location, setLocation] = useState("");
+  const [title, setTitle] = useState("");
   const [uploading, setUploading] = useState(false);
   const [filenames, setFileName] = useState("");
-  const [selectedConstituency, setSelectedConstituency] = useState(null);
+  async function schedulePushNotification() {
+    await Notifications.scheduleNotificationAsync({
+      content: {
+        title: title,
+        body: description,
+        data: {
+          data: description,
+        },
+      },
+      trigger: { seconds: 2 },
+    });
+  }
+
+  async function registerForPushNotificationsAsync() {
+    let token;
+
+    if (Platform.OS === "android") {
+      await Notifications.setNotificationChannelAsync("default", {
+        name: "default",
+        importance: Notifications.AndroidImportance.MAX,
+        vibrationPattern: [0, 250, 250, 250],
+        lightColor: "#FF231F7C",
+      });
+    }
+
+    if (Device.isDevice) {
+      const { status: existingStatus } =
+        await Notifications.getPermissionsAsync();
+      let finalStatus = existingStatus;
+      if (existingStatus !== "granted") {
+        const { status } = await Notifications.requestPermissionsAsync();
+        finalStatus = status;
+      }
+      if (finalStatus !== "granted") {
+        alert("Failed to get push token for push notification!");
+        return;
+      }
+      token = (await Notifications.getExpoPushTokenAsync()).data;
+      console.log(token);
+    } else {
+      alert("Must use physical device for Push Notifications");
+    }
+
+    return token;
+  }
+  const [expoPushToken, setExpoPushToken] = useState("");
+  const [notification, setNotification] = useState(false);
+  const notificationListener = useRef();
+  const responseListener = useRef();
+
+  // notification
+  useEffect(() => {
+    registerForPushNotificationsAsync().then((token) =>
+      setExpoPushToken(token)
+    );
+
+    notificationListener.current =
+      Notifications.addNotificationReceivedListener((notification) => {
+        setNotification(notification);
+      });
+
+    responseListener.current =
+      Notifications.addNotificationResponseReceivedListener((response) => {
+        console.log(response);
+      });
+
+    return () => {
+      Notifications.removeNotificationSubscription(
+        notificationListener.current
+      );
+      Notifications.removeNotificationSubscription(responseListener.current);
+    };
+  }, []);
 
   const pick = async () => {
     let result = await ImagePicker.launchImageLibraryAsync({
@@ -49,12 +128,12 @@ const Reporting = () => {
   };
   const upload = async () => {
     setUploading(true);
-    if (!selectedcat || !description || !image || !selectedConstituency) {
+    if (!description || !image || !title) {
       alert("All fields are required");
       return;
     }
     alert("posting please wait...");
-    console.log(selectedConstituency);
+
     const response = await fetch(image.uri);
     const blob = await response.blob();
     const filename = image.uri.substring(image.uri.lastIndexOf("/") + 1);
@@ -69,17 +148,16 @@ const Reporting = () => {
             image: imageUrl,
             description: description,
             createdAt: serverTimestamp(),
-            status: "pending",
-            location: selectedConstituency.label,
-            latitude: selectedConstituency.latitude,
-            longitude: selectedConstituency.longitude,
-            category: selectedcat,
+            status: "Verified",
+            location: "General",
+            category: "Urgent",
             comment: "",
           };
           const postRef = collection(db, "posts");
           addDoc(postRef, post)
-            .then(() => {
-              alert("Crime reported and is being processed");
+            .then(async () => {
+              alert("Posted successifully");
+              await schedulePushNotification();
             })
             .catch((e) => {
               console.log(e);
@@ -98,61 +176,22 @@ const Reporting = () => {
 
   return (
     <View>
+      <View style={styles.container}></View>
+
       <View style={styles.wrapper}>
-        <Text style={{ marginBottom: 10 }}>Location</Text>
-        <Picker
-          style={{
-            backgroundColor: "white",
-            color: "black",
-            // marginTop: 10,
-            marginBottom: 10,
-            // marginRight: 20,
-            // marginLeft: 20,
-          }}
-          selectedValue={selectedConstituency}
-          onValueChange={(itemValue, itemIndex) =>
-            setSelectedConstituency(itemValue)
-          }
-        >
-          <Picker.Item label="Select location.." value={null} />
-          {places.map((constituency, index) => (
-            <Picker.Item
-              key={index}
-              label={constituency.label}
-              value={constituency}
-            />
-          ))}
-        </Picker>
-        {/* category */}
-        <Text style={{ marginBottom: 10 }}>Category</Text>
-        <Picker
-          style={{
-            backgroundColor: "white",
-            color: "black",
-            // marginTop: 10,
-            marginBottom: 10,
-            // marginRight: 20,
-            // marginLeft: 20,
-          }}
-          selectedValue={selectedcat}
-          onValueChange={(itemValue, itemIndex) => setSelectedCat(itemValue)}
-        >
-          <Picker.Item label="Select crime category" value={null} />
-          {crimeCategories.map((cat, index) => (
-            <Picker.Item key={index} label={cat.name} value={cat.name} />
-          ))}
-        </Picker>
-        <Text style={{ marginBottom: 10 }}>Description</Text>
         <TextInput
           style={styles.input}
-          placeholder="Describe the crime..."
-          onChangeText={setDescription}
-          multiline={true}
+          placeholder="Title / headline"
+          onChangeText={setTitle}
         />
-
+        <TextInput
+          style={styles.input}
+          placeholder="Description"
+          onChangeText={setDescription}
+        />
         <TouchableOpacity onPress={pick} style={{ alignItems: "center" }}>
           <AntDesign name="pluscircleo" size={20} color="black" />
-          <Text>Add photo</Text>
+          <Text>Pick photo</Text>
         </TouchableOpacity>
 
         {image && <Image source={{ uri: image.uri }} style={styles.image} />}
@@ -164,6 +203,7 @@ const Reporting = () => {
     </View>
   );
 };
+
 const styles = StyleSheet.create({
   container: {
     margin: 20,
@@ -200,4 +240,4 @@ const styles = StyleSheet.create({
   },
 });
 
-export default Reporting;
+export default AddPol;

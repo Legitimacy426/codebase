@@ -6,12 +6,12 @@ import 'firebase/compat/storage'
 import { getFirestore } from "firebase/firestore"
 import {getAuth} from "firebase/auth"
 const firebaseConfig = {
-    apiKey: "AIzaSyATvA93TCvNhTv6v5T_IuslxsVjxPP-eJA",
-    authDomain: "crimereport-ce973.firebaseapp.com",
-    projectId: "crimereport-ce973",
-    storageBucket: "crimereport-ce973.appspot.com",
-    messagingSenderId: "552693574896",
-    appId: "1:552693574896:web:c207b2282d38ef55842635"
+    apiKey: "AIzaSyAVO4dX8U4BNF6LrFXa1N2Z4j50YAhZ7ao",
+    authDomain: "crimereportingapp-55420.firebaseapp.com",
+    projectId: "crimereportingapp-55420",
+    storageBucket: "crimereportingapp-55420.appspot.com",
+    messagingSenderId: "421795109950",
+    appId: "1:421795109950:web:12a013c92f2c7692ee456f"
 };
   
 if (!firebase.apps.length) {

@@ -10,7 +10,7 @@ import {
 } from "firebase/firestore";
 import { db } from "../../firebaseConfig";
 
-const useFetchPosts = (tbl, random) => {
+const useFetchAdminPosts = (tbl, random) => {
   const col = tbl;
   const [posts, setPosts] = useState([]);
   const [isErrorP, setError] = useState(null);
@@ -21,11 +21,15 @@ const useFetchPosts = (tbl, random) => {
       const Posts = [];
 
       const userRef = collection(db, "posts");
-      const q = query(userRef, orderBy("createdAt", "desc"));
+      const q = query(
+        userRef,
+
+        orderBy("createdAt", "desc")
+      );
       getDocs(q)
         .then((users) => {
           users.forEach((user) => {
-            Posts.push({ ...user.data(), pid: user.id });
+            Posts.push({ ...user.data(), id: user.id });
           });
           setPosts(Posts);
           setPendingP(false);
@@ -38,4 +42,4 @@ const useFetchPosts = (tbl, random) => {
   );
   return { posts, isErrorP, isPendingP };
 };
-export default useFetchPosts;
+export default useFetchAdminPosts;

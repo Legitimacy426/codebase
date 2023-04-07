@@ -7,50 +7,45 @@ import {
   TouchableOpacity,
   TextInput,
 } from "react-native";
-import React,{useState} from "react";
+import React, { useState } from "react";
 import AntDesign from "@expo/vector-icons/AntDesign";
 
 import { useNavigation } from "@react-navigation/native";
 import { signInWithEmailAndPassword } from "firebase/auth";
 import { auth } from "../firebaseConfig";
 const Login = () => {
-  const [email, setEmail] = useState()
-  const [password, setPassword] = useState()
-  
+  const [email, setEmail] = useState();
+  const [password, setPassword] = useState();
+
   const handleSubmit = () => {
     if (!email || !password) {
-      alert("Fill in all the fields")
-      return
+      alert("Fill in all the fields");
+      return;
     }
-   
-   
+
     signInWithEmailAndPassword(auth, email, password)
       .then(() => {
-        if (email != "admin@gmail.com") {
-          alert("You are restricted")
-          return
+        if (email != "police@gmail.com") {
+          alert("You are restricted");
+          return;
         }
-        alert("Success")
-        navigation.navigate('Admin')
+
+        navigation.navigate("Admin");
       })
       .catch((e) => {
-      alert(e.message)
-    })
-  }
- 
+        alert(e.message);
+      });
+  };
+
   const navigation = useNavigation();
   return (
-    <View
-      style={styles.wrapper}
-    
-    >
+    <View style={styles.wrapper}>
       <View style={styles.container}>
         <View style={styles.headlines}>
-          
           <TextInput
             style={styles.input}
             placeholder="Email Address"
-          onChangeText={setEmail}
+            onChangeText={setEmail}
           />
           <TextInput
             style={styles.input}
@@ -61,11 +56,8 @@ const Login = () => {
           <TouchableOpacity style={styles.button} onPress={handleSubmit}>
             <Text style={styles.text}>Continue</Text>
           </TouchableOpacity>
-          
         </View>
-       
       </View>
-    
     </View>
   );
 };
@@ -97,22 +89,21 @@ const styles = StyleSheet.create({
     alignSelf: "center",
     borderRadius: 5,
     backgroundColor: "#ffffff0e",
-    width:350
-   
+    width: 350,
   },
 
   button: {
     padding: 18,
-    borderRadius:5,
+    borderRadius: 5,
     fontWeight: "bold",
     backgroundColor: "black",
-    alignItems:"center",
+    alignItems: "center",
     color: "white",
   },
   text: {
     color: "white",
-    fontWeight:"bold"
- },
+    fontWeight: "bold",
+  },
   bold: {
     fontWeight: "bold",
     color: "black",
@@ -124,13 +115,13 @@ const styles = StyleSheet.create({
     marginTop: 30,
   },
   input: {
-    padding:12,
-    
+    padding: 12,
+
     borderColor: "black",
     borderWidth: 2,
     backgroundColor: "white",
     marginBottom: 14,
-    borderRadius:5
+    borderRadius: 5,
   },
 });
 
